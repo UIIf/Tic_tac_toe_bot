@@ -8,6 +8,7 @@ class PlayerState:
     PLAY_LOCAL = 2
     PLAY_WITH_PLAYER = 3
     WAIT_FRIEND = 4
+    WAIT_RANDOM = 5
 
 
 class BotGameStates:

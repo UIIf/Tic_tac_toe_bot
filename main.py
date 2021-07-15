@@ -17,23 +17,35 @@ from multiplayer import multiplayer_logic
 current_users = []
 is_adding = False
 bot = telebot.TeleBot(token)
+searching_players = None
 
 
 def check_reg(states_bd, states_sql, message):
-    states_sql.execute(f"SELECT * FROM players_state WHERE Chat_id = {message.chat.id}")
+    states_sql.execute(f"""SELECT * FROM players_state WHERE UserName = "{message.from_user.username}" """)
     if states_sql.fetchone() is None:
         states_sql.execute(f"INSERT INTO players_state VALUES (?,?,?)", (message.chat.id, message.from_user.username, 0))
-        states_bd.commit()
+    else:
+        states_sql.execute(
+            f"""UPDATE players_state SET Chat_id = {message.chat.id} WHERE UserName = "{message.from_user.username}" """)
+    states_bd.commit()
 
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     states = sqlite3.connect('Tic_tac_toe.db')
     sql = states.cursor()
-    bot.send_message(message.chat.id, "Simple bot, for playing tic-tac-toe with strangers \n(we store your data)")
+    bot.send_message(message.chat.id, "Simple bot, for playing tic-tac-toe with strangers")
     sql.execute(f"SELECT Chat_id FROM players_state WHERE Chat_id = {message.chat.id}")
     check_reg(states, sql, message)
     del states
+
+
+@bot.message_handler(commands=['repository'])
+def send_repository(message):
+    markup = types.InlineKeyboardMarkup()
+    btn_docs = types.InlineKeyboardButton(text='Link to repository', url='https://github.com/UIIf/Tic_tac_toe_bot')
+    markup.add(btn_docs)
+    bot.send_message(message.chat.id, "🤖 Uiif Github Repository 🤖", reply_markup=markup)
 
 
 @bot.message_handler(commands=['play_bot'])
@@ -146,6 +158,36 @@ def invite_friend(message):
         bot.send_message(message.chat.id, "U must finish ur game")
 
 
+@bot.message_handler(commands=['find_random'])
+def find_random(message):
+    states = sqlite3.connect('Tic_tac_toe.db')
+    sql = states.cursor()
+    check_reg(states, sql, message)
+    player = sql.execute(f"SELECT * FROM players_state WHERE Chat_id = {message.chat.id}").fetchone()
+    if player[2] == PlayerState.WAIT:
+        global searching_players
+        if searching_players is None:
+            searching_players = message.chat.id
+            markup_in_game = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+            markup_in_game.add("/surrender")
+            send_message(bot, message.chat.id, "Waiting others", markup_in_game)
+            set_player_state(message.chat.id, PlayerState.WAIT_RANDOM)
+        elif searching_players != message.chat.id:
+            mp_games = sqlite3.connect("multiplayer_games.db")
+            mp_sql = mp_games.cursor()
+            set_player_state(message.chat.id, PlayerState.PLAY_WITH_PLAYER)
+            set_player_state(searching_players, PlayerState.PLAY_WITH_PLAYER)
+            mp_sql.execute("""INSERT INTO multiplayer_games VALUES (?, ?, ?, ?)""", (searching_players, message.chat.id, "0 0 0 0 0 0 0 0 0", MpGameStates.WAIT_MOVE_F))
+            msg = generate_field_and_keyboard(["0", "0", "0", "0", "0", "0", "0", "0", "0"])
+            send_massage_both(bot, searching_players, message.chat.id, msg[0], SendMessagesBoth.FOR_FIRST, msg[1], "Yor turn\n")
+            mp_games.commit()
+            searching_players = None
+    elif player[2] == PlayerState.WAIT_FRIEND:
+        bot.send_message(message.chat.id, "Wait ur friends")
+    else:
+        bot.send_message(message.chat.id, "U must finish ur game")
+
+
 @bot.message_handler(commands=['accept'])
 def accept_friend(message):
     states = sqlite3.connect('Tic_tac_toe.db')
@@ -217,6 +259,11 @@ def surrender(message):
             opponent = current_game[1]
         send_message(bot, opponent, "Your opponent left the game")
 
+        send_message(bot, chat_id, "As u wish")
+    if player[0] == PlayerState.WAIT_RANDOM:
+        set_player_state(chat_id, PlayerState.WAIT)
+        global searching_players
+        searching_players = None
         send_message(bot, chat_id, "As u wish")
 
 
