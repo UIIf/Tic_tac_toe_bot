@@ -19,9 +19,10 @@ class MpGameStates:
     WAIT_MOVE_F = 0
     WAIT_MOVE_S = 1
     WAIT_REMATCH = 2
+    ONE_READY = 3
+    
 
-
-class Send_Messages_Both:
+class SendMessagesBoth:
     FOR_FIRST = 0
     FOR_SECOND = 1
     FOR_BOTH = 2
@@ -93,19 +94,23 @@ def send_message(bot, chat_id, text, markup_in_game=types.ReplyKeyboardRemove())
     bot.send_message(chat_id, text, reply_markup=markup_in_game)
 
 
-def send_massage_both(bot, chat_id_f, chat_id_s, text, state=-1, markup_in_game=types.ReplyKeyboardRemove(), additional_text=""):
-    if state == Send_Messages_Both.FOR_FIRST:
-        bot.send_message(chat_id_f, additional_text+text, reply_markup=markup_in_game)
-        bot.send_message(chat_id_s, text, types.ReplyKeyboardRemove())
-    elif state == Send_Messages_Both.FOR_SECOND:
-        bot.send_message(chat_id_f, text, types.ReplyKeyboardRemove())
-        bot.send_message(chat_id_s, additional_text+text, reply_markup=markup_in_game)
-    elif state == Send_Messages_Both.FOR_BOTH:
-        bot.send_message(chat_id_f, additional_text+text, reply_markup=markup_in_game)
-        bot.send_message(chat_id_s, additional_text+text, reply_markup=markup_in_game)
+def send_massage_both(bot, chat_id_f, chat_id_s, text, state=-1, markup_in_game=types.ReplyKeyboardRemove(), additional_text="", second_player_text=None):
+    ft = text
+    st = text
+    if not(second_player_text is None):
+        st = second_player_text
+    if state == SendMessagesBoth.FOR_FIRST:
+        bot.send_message(chat_id_f, additional_text + ft, reply_markup=markup_in_game)
+        bot.send_message(chat_id_s, st, types.ReplyKeyboardRemove())
+    elif state == SendMessagesBoth.FOR_SECOND:
+        bot.send_message(chat_id_f, ft, types.ReplyKeyboardRemove())
+        bot.send_message(chat_id_s, additional_text+st, reply_markup=markup_in_game)
+    elif state == SendMessagesBoth.FOR_BOTH:
+        bot.send_message(chat_id_f, additional_text+ft, reply_markup=markup_in_game)
+        bot.send_message(chat_id_s, additional_text+st, reply_markup=markup_in_game)
     else:
-        bot.send_message(chat_id_f, text, types.ReplyKeyboardRemove())
-        bot.send_message(chat_id_s, text, types.ReplyKeyboardRemove())
+        bot.send_message(chat_id_f, ft, types.ReplyKeyboardRemove())
+        bot.send_message(chat_id_s, st, types.ReplyKeyboardRemove())
 
 
 def player_step(field, symbol, num):

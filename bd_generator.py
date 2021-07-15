@@ -5,7 +5,7 @@ p_sql = p_state.cursor()
 
 p_sql.execute("""CREATE TABLE IF NOT EXISTS players_state(
     Chat_id INTEGER,
-    Name TEXT,
+    UserName TEXT,
     Current_State INTEGER);
 """)
 
