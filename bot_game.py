@@ -59,18 +59,17 @@ def versus_bot_logic(bot, message):
     games_sql = games.cursor()
     current_game = games_sql.execute(f"SELECT * FROM bot_games WHERE Chat_id = {message.chat.id}").fetchone()
     # print(current_game[3], BotGameStates.CHOOSE_SIDE.value)
-    if current_game[3] == BotGameStates.CHOOSE_SIDE.value:
+    if current_game[3] == BotGameStates.CHOOSE_SIDE:
         if message.text == "⭕️.":
             games_sql.execute(f"""UPDATE bot_games SET Bot_Symbol = "{1}" WHERE Chat_id = {message.chat.id}""")
-            bot_step(bot, games_sql.execute(f"SELECT * FROM bot_games WHERE Chat_id = {message.chat.id}").fetchone(), games,
-                     games_sql)
+            bot_step(bot, games_sql.execute(f"SELECT * FROM bot_games WHERE Chat_id = {message.chat.id}").fetchone(), games, games_sql)
+            games_sql.execute(f"UPDATE bot_games SET Game_State = {BotGameStates.WAIT_MOVE} WHERE Chat_id = {message.chat.id}")
         elif message.text != "❌.":
-            bot.send_message(bot, message.chat.id, "Pls use keyboard")
-            return
+            bot.send_message(message.chat.id, "Pls use keyboard")
         else:
             msg = generate_field_and_keyboard(["0", "0", "0", "0", "0", "0", "0", "0", "0"])
             send_message(bot, message.chat.id, msg[0], msg[1])
-        games_sql.execute(f"UPDATE bot_games SET Game_State = {BotGameStates.WAIT_MOVE.value} WHERE Chat_id = {message.chat.id}")
+            games_sql.execute(f"UPDATE bot_games SET Game_State = {BotGameStates.WAIT_MOVE} WHERE Chat_id = {message.chat.id}")
         games.commit()
     else:
         try:
@@ -81,8 +80,10 @@ def versus_bot_logic(bot, message):
                     player_symbol = "2"
                 else:
                     player_symbol = "1"
-                player_response_field = player_step(bot, current_game[0], current_game[1], player_symbol, temp)
-                if win_chek(player_response_field) == "0":
+                player_response_field = player_step(current_game[1], player_symbol, temp)
+                if player_response_field is None:
+                    bot.send_message(message.chat.id, "Pleas use keyboard")
+                elif win_chek(player_response_field) == "0":
                     if free_steps(player_response_field) == 0:
                         send_message(bot, message.chat.id, "Tie\n" + generate_field_and_keyboard(player_response_field)[0])
                         games_sql.execute(f"DELETE FROM bot_games WHERE Chat_id = {message.chat.id}")
@@ -97,4 +98,4 @@ def versus_bot_logic(bot, message):
                     set_player_state(message.chat.id, PlayerState.WAIT)
                 games.commit()
         except ValueError:
-            bot.send_message(bot, message.chat.id, "Smth go wrong")
+            bot.send_message( message.chat.id, "Smth go wrong")

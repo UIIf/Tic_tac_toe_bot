@@ -1,9 +1,8 @@
 from telebot import types
 import sqlite3
-from enum import Enum
 
 
-class PlayerState(Enum):
+class PlayerState:
     WAIT = 0
     PLAY_WITH_BOT = 1
     PLAY_LOCAL = 2
@@ -11,15 +10,27 @@ class PlayerState(Enum):
     WAIT_FRIEND = 4
 
 
-class BotGameStates(Enum):
+class BotGameStates:
     WAIT_MOVE = 0
     CHOOSE_SIDE = 1
+
+
+class MpGameStates:
+    WAIT_MOVE_F = 0
+    WAIT_MOVE_S = 1
+    WAIT_REMATCH = 2
+
+
+class Send_Messages_Both:
+    FOR_FIRST = 0
+    FOR_SECOND = 1
+    FOR_BOTH = 2
 
 
 def set_player_state(chat_id, state):
     states = sqlite3.connect('Tic_tac_toe.db')
     sql = states.cursor()
-    sql.execute(f"UPDATE players_state SET Current_State = {state.value} WHERE Chat_id = {chat_id}")
+    sql.execute(f"UPDATE players_state SET Current_State = {state} WHERE Chat_id = {chat_id}")
     states.commit()
     del states
 
@@ -82,42 +93,24 @@ def send_message(bot, chat_id, text, markup_in_game=types.ReplyKeyboardRemove())
     bot.send_message(chat_id, text, reply_markup=markup_in_game)
 
 
-def player_step(bot, chat_id, field, symbol, num):
-    field = field.split(" ")
-    fin = None
-    if field[num-1] != "0":
-        bot.send_message(bot, chat_id, "Pleas use keyboard")
+def send_massage_both(bot, chat_id_f, chat_id_s, text, state=-1, markup_in_game=types.ReplyKeyboardRemove(), additional_text=""):
+    if state == Send_Messages_Both.FOR_FIRST:
+        bot.send_message(chat_id_f, additional_text+text, reply_markup=markup_in_game)
+        bot.send_message(chat_id_s, text, types.ReplyKeyboardRemove())
+    elif state == Send_Messages_Both.FOR_SECOND:
+        bot.send_message(chat_id_f, text, types.ReplyKeyboardRemove())
+        bot.send_message(chat_id_s, additional_text+text, reply_markup=markup_in_game)
+    elif state == Send_Messages_Both.FOR_BOTH:
+        bot.send_message(chat_id_f, additional_text+text, reply_markup=markup_in_game)
+        bot.send_message(chat_id_s, additional_text+text, reply_markup=markup_in_game)
     else:
+        bot.send_message(chat_id_f, text, types.ReplyKeyboardRemove())
+        bot.send_message(chat_id_s, text, types.ReplyKeyboardRemove())
+
+
+def player_step(field, symbol, num):
+    field = field.split(" ")
+    if field[num - 1] == "0":
         field[num-1] = symbol
-        # fin = win_chek(field)
-        # if fin == symbol:
-        #     if bd == "bot_games":
-        #         text = "You win\n" + generate_field_and_keyboard(field)[0]
-        #     else:
-        #         if symbol == "1":
-        #             symbol = "❌"
-        #         else:
-        #             symbol = "⭕️"
-        #         text = symbol + " win\n" + generate_field_and_keyboard(field)[0]
-        #     games_sql.execute(f"DELETE FROM {bd} WHERE Chat_id = {chat_id}")
-        #     games.commit()
-        #     send_message(bot, chat_id, text)
-        #     set_player_state(chat_id, PlayerState.WAIT)
-        #     # return fin
-        # else:
-        #     text_field = " ".join(field)
-        #     games_sql.execute(f"""UPDATE {bd} SET Game_field = "{text_field}" WHERE Chat_id = {chat_id} """)
-        #     free = 0
-        #     for i in field:
-        #         if i == "0":
-        #             free += 1
-        #     if free > 0:
-        #         pass
-        #     else:
-        #         fin = None
-        #         text = "Tie\n" + generate_field_and_keyboard(field)[0]
-        #         games_sql.execute(f"DELETE FROM {bd} WHERE Chat_id = {chat_id}")
-        #         send_message(bot, chat_id, text)
-        #         set_player_state(chat_id, PlayerState.WAIT)
-        #         # return fin
-    return field
+        return field
+    return None

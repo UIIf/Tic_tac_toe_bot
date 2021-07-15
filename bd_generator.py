@@ -35,3 +35,22 @@ l_sql.execute("""CREATE TABLE IF NOT  EXISTS local_games(
 l_games.commit()
 
 del l_games
+
+friend_requests = sqlite3.connect('friend_requests.db')
+friend_sql = friend_requests.cursor()
+friend_sql.execute("""CREATE TABLE IF NOT EXISTS friend_requests(
+    Chat_id INTEGER,
+    Friend_User_Name TEXT
+);""")
+friend_requests.commit()
+
+del friend_requests
+
+multiplayer_games = sqlite3.connect("multiplayer_games.db")
+multiplayer_sql = multiplayer_games.cursor()
+multiplayer_sql.execute("""CREATE TABLE IF NOT EXISTS multiplayer_games(
+    Chat_id_first INTEGER,
+    Chat_id_second INTEGER,
+    Game_field TEXT,
+    Game_State INTEGER
+);""")
