@@ -139,6 +139,14 @@ def where_am_i(message):
 
 @bot.message_handler(commands=['invite'])
 def invite_friend(message):
+    global is_adding
+    while is_adding:
+        pass
+
+    is_adding = True
+    current_users.append(message.chat.id)
+    is_adding = False
+
     states = sqlite3.connect('Tic_tac_toe.db')
     sql = states.cursor()
     check_reg(states, sql, message)
@@ -156,10 +164,19 @@ def invite_friend(message):
         bot.send_message(message.chat.id, "Wait ur friends")
     else:
         bot.send_message(message.chat.id, "U must finish ur game")
+    current_users.remove(message.chat.id)
 
 
 @bot.message_handler(commands=['find_random'])
 def find_random(message):
+    global is_adding
+    while is_adding:
+        pass
+
+    is_adding = True
+    current_users.append(message.chat.id)
+    is_adding = False
+
     states = sqlite3.connect('Tic_tac_toe.db')
     sql = states.cursor()
     check_reg(states, sql, message)
@@ -186,10 +203,19 @@ def find_random(message):
         bot.send_message(message.chat.id, "Wait ur friends")
     else:
         bot.send_message(message.chat.id, "U must finish ur game")
+    current_users.remove(message.chat.id)
 
 
 @bot.message_handler(commands=['accept'])
 def accept_friend(message):
+    global is_adding
+    while is_adding:
+        pass
+
+    is_adding = True
+    current_users.append(message.chat.id)
+    is_adding = False
+
     states = sqlite3.connect('Tic_tac_toe.db')
     sql = states.cursor()
     check_reg(states, sql, message)
@@ -215,6 +241,7 @@ def accept_friend(message):
         bot.send_message(message.chat.id, "Wait ur friends")
     else:
         bot.send_message(message.chat.id, "U must finish ur game")
+    current_users.remove(message.chat.id)
 
 
 @bot.message_handler(commands=['surrender'])
