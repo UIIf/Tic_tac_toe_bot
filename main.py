@@ -2,6 +2,7 @@ import random
 
 import telebot
 from telebot import types
+import sqlite3
 
 # token = ""
 from config import *
@@ -21,13 +22,25 @@ searching_players = None
 
 
 def check_reg(states_bd, states_sql, message):
-    states_sql.execute(f"""SELECT * FROM players_state WHERE UserName = "{message.from_user.username}" """)
-    if states_sql.fetchone() is None:
-        states_sql.execute(f"INSERT INTO players_state VALUES (?,?,?)", (message.chat.id, message.from_user.username, 0))
+    if message.from_user.username is None:
+        states_sql.execute(f"""SELECT * FROM players_state WHERE Chat_id = {message.chat.id} """)
+        if states_sql.fetchone() is None:
+            states_sql.execute(f"INSERT INTO players_state VALUES (?,?,?)", (message.chat.id, None, 0))
+        else:
+            states_sql.execute(f"""UPDATE players_state SET UserName = "{message.from_user.username}" WHERE  Chat_id = {message.chat.id}""")
     else:
-        states_sql.execute(
-            f"""UPDATE players_state SET Chat_id = {message.chat.id} WHERE UserName = "{message.from_user.username}" """)
-    states_bd.commit()
+        states_sql.execute(f"""SELECT * FROM players_state WHERE UserName = "{message.from_user.username}" """)
+        cur_user = states_sql.fetchone()
+        if cur_user is None:
+            states_sql.execute(f"INSERT INTO players_state VALUES (?,?,?)",
+                               (message.chat.id, message.from_user.username, 0))
+        elif ((len(cur_user) > 1) and (cur_user[1] is None)):
+            states_sql.execute(
+                f"""UPDATE players_state SET UserName = "{message.from_user.username}" WHERE  Chat_id = {message.chat.id}""")
+        else:
+            states_sql.execute(
+                f"""UPDATE players_state SET Chat_id = {message.chat.id} WHERE UserName = "{message.from_user.username}" """)
+        states_bd.commit()
 
 
 @bot.message_handler(commands=['start'])
@@ -110,7 +123,7 @@ def play_local(message):
             msg = generate_field_and_keyboard(["0", "0", "0", "0", "0", "0", "0", "0", "0"])
             send_message(bot, message.chat.id, msg[0], msg[1])
         else:
-            bot.send_message(bot, message.chat.id, "U must finish ur game")
+            bot.send_message( message.chat.id, "U must finish ur game")
         del states
         current_users.remove(message.chat.id)
 
@@ -224,7 +237,7 @@ def accept_friend(message):
         f_req = sqlite3.connect("friend_requests.db")
         f_sql = f_req.cursor()
         request = f_sql.execute(f"""SELECT Chat_id FROM friend_requests WHERE Friend_User_Name = "{message.from_user.username}" """).fetchone()
-        if request is None:
+        if request is None or message.from_user.username is None:
             bot.send_message(message.chat.id, "No one invites u 😔")
         else:
             mp_games = sqlite3.connect("multiplayer_games.db")
